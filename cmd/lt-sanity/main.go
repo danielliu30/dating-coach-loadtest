@@ -12,7 +12,7 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/danielliu30/dating-coach/loadtest/internal/harness"
+	"github.com/danielliu30/dating-coach-loadtest/internal/harness"
 )
 
 func main() {

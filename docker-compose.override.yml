@@ -1,6 +1,8 @@
-# Load-test-only overrides. Apply with:
-#   docker compose --env-file loadtest/.env -f docker-compose.yml \
-#     -f loadtest/docker-compose.override.yml --profile gateway up -d --build
+# Load-test-only overrides. Apply from the app repo root (this repo cloned
+# alongside it as dating-coach-loadtest):
+#   docker compose --env-file ../dating-coach-loadtest/.env \
+#     -f docker-compose.yml -f ../dating-coach-loadtest/docker-compose.override.yml \
+#     --profile gateway up -d --build
 #
 # - postgres gets pg_stat_statements preloaded (harness.DBStats diffs it per
 #   scenario) and statement logging at 200ms so the slowest queries land in

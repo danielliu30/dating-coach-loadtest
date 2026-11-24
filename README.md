@@ -26,18 +26,21 @@ standard profile (`LT_*` env vars override `LT_VUS`/`LT_RPS`/`LT_DURATION`/
 
 ## Setup
 
-Bring the stack up with the loadtest env + override (the override preloads
-`pg_stat_statements` and gives api/worker `host.docker.internal` for the fake
-Stripe):
+The suite lives outside the app repo: clone it next to `dating-coach` so the
+compose override can reference the app's `docker-compose.yml`. Bring the stack
+up **from the app repo root** with the loadtest env + override (the override
+preloads `pg_stat_statements` and gives api/worker `host.docker.internal` for
+the fake Stripe):
 
 ```sh
-docker compose --env-file loadtest/.env \
-  -f docker-compose.yml -f loadtest/docker-compose.override.yml \
+LT=../dating-coach-loadtest
+docker compose --env-file $LT/.env \
+  -f docker-compose.yml -f $LT/docker-compose.override.yml \
   --profile gateway up -d --build
 curl -fsS localhost/healthz && curl -fsS localhost/ml/healthz
 ```
 
-Then from `loadtest/`:
+Then from this repo:
 
 ```sh
 go build ./...
@@ -45,7 +48,7 @@ go run ./cmd/lt-sanity                      # smoke: proves the plumbing
 go run ./cmd/lt-auth -vus 10 -duration 30s  # each component owns its flags
 ```
 
-Reports land in `loadtest/out/<component>-<unix>.json` with per-endpoint
+Reports land in `out/<component>-<unix>.json` with per-endpoint
 latency/status histograms, counters, finding notes, and pg_stat_statements
 deltas.
 

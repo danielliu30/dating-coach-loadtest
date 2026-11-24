@@ -31,7 +31,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/danielliu30/dating-coach/loadtest/internal/harness"
+	"github.com/danielliu30/dating-coach-loadtest/internal/harness"
 )
 
 const pollInterval = 2 * time.Second // the app's AnalysisResultScreen cadence

@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # run.sh — run the load-test suite at the standard profile against the
-# gateway stack. Bring the stack up first:
+# gateway stack. Bring the stack up first (from the app repo root, this repo
+# cloned alongside it as dating-coach-loadtest):
 #
-#   docker compose --env-file loadtest/.env \
-#     -f docker-compose.yml -f loadtest/docker-compose.override.yml \
+#   docker compose --env-file ../dating-coach-loadtest/.env \
+#     -f docker-compose.yml -f ../dating-coach-loadtest/docker-compose.override.yml \
 #     --profile gateway up -d --build
 #
-# then:  loadtest/run.sh
+# then from this repo:  ./run.sh
 #
 # Env overrides:
 #   LT_BASE=http://localhost   gateway origin
