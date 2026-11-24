@@ -3,7 +3,6 @@ package harness
 import (
 	"fmt"
 	"os/exec"
-	"path/filepath"
 	"strconv"
 	"strings"
 )
@@ -11,15 +10,12 @@ import (
 // QueueDepth reports messages_ready and messages_unacknowledged for a
 // RabbitMQ queue via rabbitmqctl inside the compose container.
 func QueueDepth(queue string) (ready, unacked int, err error) {
-	root, err := RepoRoot()
-	if err != nil {
-		return 0, 0, err
-	}
-	args := []string{
-		"compose", "--env-file", filepath.Join(root, "loadtest", ".env"),
-		"-f", filepath.Join(root, "docker-compose.yml"),
+	args, err := composeArgs(
 		"exec", "-T", "rabbitmq", "rabbitmqctl",
 		"list_queues", "name", "messages_ready", "messages_unacknowledged",
+	)
+	if err != nil {
+		return 0, 0, err
 	}
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
