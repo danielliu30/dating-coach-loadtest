@@ -1,0 +1,113 @@
+name: Load test
+
+# Manual trigger only — the suite never runs on push, PR, or schedule. Dispatch
+# it against an app SHA: the job brings the dating-coach stack up on the
+# runner, runs every component at the requested profile, and uploads reports,
+# the HTML digest, and the run log.
+on:
+  workflow_dispatch:
+    inputs:
+      app_sha:
+        description: dating-coach SHA/branch to test
+        required: true
+        default: main
+      vus:
+        description: stage VU list
+        required: false
+        default: "10,20,50"
+      rps:
+        description: aggregate actions/sec per stage
+        required: false
+        default: "150"
+      duration:
+        description: per-stage duration
+        required: false
+        default: "30s"
+      components:
+        description: space-separated component list
+        required: false
+        default: "sanity auth chat booking analysis e2e"
+
+env:
+  LT_APP_DIR: app
+  LT_BASE: http://localhost
+  LT_DASH: "0"
+  LT_VUS: ${{ inputs.vus }}
+  LT_RPS: ${{ inputs.rps }}
+  LT_DURATION: ${{ inputs.duration }}
+  LT_COMPONENTS: ${{ inputs.components }}
+
+jobs:
+  load-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/checkout@v4
+        with:
+          repository: danielliu30/dating-coach
+          ref: ${{ inputs.app_sha }}
+          path: app
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Bring up the gateway stack
+        run: >-
+          docker compose --env-file .env
+          -f app/docker-compose.yml -f docker-compose.override.yml
+          --profile gateway up -d --build
+
+      - name: Wait for /healthz through nginx
+        run: |
+          for i in $(seq 1 90); do
+            if curl -fsS http://localhost:80/healthz >/dev/null 2>&1 \
+              && curl -fsS http://localhost:80/ml/healthz >/dev/null 2>&1; then
+              echo "stack ready after ${i} attempts"; exit 0
+            fi
+            sleep 2
+          done
+          echo "stack did not become healthy"
+          docker compose --env-file .env -f app/docker-compose.yml -f docker-compose.override.yml --profile gateway ps
+          exit 1
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build components
+        run: go build ./...
+
+      - name: Run the suite
+        run: ./run.sh
+
+      - name: Upload reports + logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loadtest-out
+          path: out/
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Collect compose logs
+        if: failure()
+        run: >-
+          docker compose --env-file .env
+          -f app/docker-compose.yml -f docker-compose.override.yml
+          --profile gateway logs --no-color > compose-logs.txt 2>&1 || true
+
+      - name: Upload compose logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: compose-logs
+          path: compose-logs.txt
+          retention-days: 14
+
+      - name: Tear down
+        if: always()
+        run: >-
+          docker compose --env-file .env
+          -f app/docker-compose.yml -f docker-compose.override.yml
+          --profile gateway down -v
