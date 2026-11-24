@@ -351,6 +351,11 @@ func (e *env) journeyAnalyze(ctx context.Context, vu int, rate *harness.Rate, em
 			terminal = ar.Status == "succeeded" || ar.Status == "failed"
 		}
 		if !terminal {
+			if ctx.Err() != nil {
+				// Stage teardown cut the wait short — not a service stall.
+				e.m.Inc("journey_analysis_ctx_canceled")
+				continue
+			}
 			e.m.Inc("journey_analysis_terminal_fail")
 			e.m.ErrOnce("an_terminal", "vu=%d analysis %s not terminal after %s", vu, ar.ID, e.analysisTimeout)
 			continue
