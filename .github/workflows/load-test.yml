@@ -1,10 +1,13 @@
 name: Load test
 
-# Manual trigger only — the suite never runs on push, PR, or schedule. Dispatch
-# it against an app SHA: the job brings the dating-coach stack up on the
-# runner, runs every component at the requested profile, and uploads reports,
-# the HTML digest, and the run log.
+# Manual dispatch + nightly scheduled run — never on push or PR. Dispatch takes
+# an app SHA and profile overrides; the schedule runs the standard profile
+# against main. The job brings the dating-coach stack up on the runner, runs
+# every component, uploads reports + the HTML digest + run log, and files (or
+# comments on) a tracking issue when a scheduled run fails.
 on:
+  schedule:
+    - cron: "0 3 * * *" # nightly at 03:00 UTC
   workflow_dispatch:
     inputs:
       app_sha:
@@ -41,6 +44,9 @@ jobs:
   load-test:
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    permissions:
+      contents: read
+      issues: write # scheduled-run failure tracking issue
     steps:
       - uses: actions/checkout@v4
 
@@ -81,6 +87,11 @@ jobs:
       - name: Run the suite
         run: ./run.sh
 
+      - name: Digest on run page
+        if: always()
+        run: |
+          { echo '## Suite tail'; echo '```'; tail -n 40 out/run.log 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload reports + logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -104,6 +115,22 @@ jobs:
           name: compose-logs
           path: compose-logs.txt
           retention-days: 14
+
+      - name: Track scheduled-run failure in an issue
+        if: failure() && github.event_name == 'schedule'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh label create loadtest-failure --color B60205 --description "Nightly suite failure" --force
+          existing=$(gh issue list --state open --label loadtest-failure --limit 1 --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Scheduled load test failed again: $RUN_URL"
+          else
+            gh issue create --label loadtest-failure \
+              --title "Scheduled load test failing" \
+              --body "Nightly suite failed: $RUN_URL — reports, run log, and compose logs are attached to the run's artifacts. This issue stays open and accrues a comment per failed night until resolved."
+          fi
 
       - name: Tear down
         if: always()

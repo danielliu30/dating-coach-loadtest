@@ -54,11 +54,14 @@ deltas.
 
 ## CI
 
-`.github/workflows/load-test.yml` is **manual only** — `workflow_dispatch`
-with the app SHA and profile knobs (`vus`, `rps`, `duration`, `components`).
-The job checks out `dating-coach` at that SHA, brings the gateway stack up
-on the runner, runs `run.sh`, and uploads `out/` (reports, HTML digest, run
-log). The suite never runs on push, PR, or schedule.
+`.github/workflows/load-test.yml` runs on **manual dispatch** (`app_sha` +
+`vus`/`rps`/`duration`/`components` overrides) and on a **nightly schedule**
+(03:00 UTC, standard profile against `main`). The job checks out
+`dating-coach`, brings the gateway stack up on the runner, runs `run.sh`,
+uploads `out/` (reports, HTML digest, run log), and prints the digest tail
+on the run-summary page. A failed scheduled run files (or comments on) an
+open `loadtest-failure` issue so regressions surface instead of sitting in
+the Actions tab. The suite never runs on push or PR.
 
 The harness finds the app checkout via `LT_APP_DIR` (default: sibling
 `../dating-coach`), so a non-standard local layout only needs that env var.
