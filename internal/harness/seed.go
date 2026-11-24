@@ -21,36 +21,69 @@ func Tag(component string) string {
 	return fmt.Sprintf("%s-%x-%d", component, time.Now().UnixNano()&0xffffff, os.Getpid()%0x1000)
 }
 
-// RepoRoot walks up from the working directory to the folder containing
-// docker-compose.yml.
-func RepoRoot() (string, error) {
+// SuiteRoot walks up from the working directory for docker-compose.override.yml
+// — the file only this repo ships — so components work from any cwd.
+func SuiteRoot() (string, error) {
 	dir, err := filepath.Abs(".")
 	if err != nil {
 		return "", err
 	}
 	for {
-		if _, err := os.Stat(filepath.Join(dir, "docker-compose.yml")); err == nil {
+		if _, err := os.Stat(filepath.Join(dir, "docker-compose.override.yml")); err == nil {
 			return dir, nil
 		}
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			return "", fmt.Errorf("no docker-compose.yml found walking up from cwd")
+			return "", fmt.Errorf("no docker-compose.override.yml found walking up from cwd")
 		}
 		dir = parent
 	}
 }
 
-// Psql runs one statement in the compose postgres container and returns
-// tuples-only output.
-func Psql(sql string) (string, error) {
-	root, err := RepoRoot()
+// AppRoot returns the dating-coach checkout that owns docker-compose.yml:
+// LT_APP_DIR when set, else the sibling checkout ../dating-coach that the
+// README's clone layout produces.
+func AppRoot() (string, error) {
+	if dir := os.Getenv("LT_APP_DIR"); dir != "" {
+		return filepath.Abs(dir)
+	}
+	suite, err := SuiteRoot()
 	if err != nil {
 		return "", err
 	}
+	dir := filepath.Join(suite, "..", "dating-coach")
+	if _, err := os.Stat(filepath.Join(dir, "docker-compose.yml")); err != nil {
+		return "", fmt.Errorf("no docker-compose.yml at %s: set LT_APP_DIR to the dating-coach checkout", dir)
+	}
+	return filepath.Abs(dir)
+}
+
+// composeArgs builds the `docker compose` prefix every helper shares: the
+// app's compose file under the suite's env and override, so calls work from
+// anywhere once the two checkouts exist.
+func composeArgs(extra ...string) ([]string, error) {
+	suite, err := SuiteRoot()
+	if err != nil {
+		return nil, err
+	}
+	app, err := AppRoot()
+	if err != nil {
+		return nil, err
+	}
 	args := []string{
-		"compose", "--env-file", filepath.Join(root, "loadtest", ".env"),
-		"-f", filepath.Join(root, "docker-compose.yml"),
-		"exec", "-T", "postgres", "psql", "-U", "datingcoach", "-d", "datingcoach", "-tAc", sql,
+		"compose", "--env-file", filepath.Join(suite, ".env"),
+		"-f", filepath.Join(app, "docker-compose.yml"),
+		"-f", filepath.Join(suite, "docker-compose.override.yml"),
+	}
+	return append(args, extra...), nil
+}
+
+// Psql runs one statement in the compose postgres container and returns
+// tuples-only output.
+func Psql(sql string) (string, error) {
+	args, err := composeArgs("exec", "-T", "postgres", "psql", "-U", "datingcoach", "-d", "datingcoach", "-tAc", sql)
+	if err != nil {
+		return "", err
 	}
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
@@ -63,14 +96,9 @@ func Psql(sql string) (string, error) {
 // scrape verification codes (dev mode, no SMTP) and to count backend warnings
 // such as "dropping chat event for slow client".
 func ComposeLogs(service, since string) (string, error) {
-	root, err := RepoRoot()
+	args, err := composeArgs("logs", service, "--since", since, "--no-log-prefix")
 	if err != nil {
 		return "", err
-	}
-	args := []string{
-		"compose", "--env-file", filepath.Join(root, "loadtest", ".env"),
-		"-f", filepath.Join(root, "docker-compose.yml"),
-		"logs", service, "--since", since, "--no-log-prefix",
 	}
 	out, err := exec.Command("docker", args...).CombinedOutput()
 	if err != nil {
@@ -83,15 +111,9 @@ func ComposeLogs(service, since string) (string, error) {
 // loadtest env file and override, used by lt-payments to bring the
 // payments-enabled api-pay/worker-pay services up next to the base stack.
 func ComposeUp(services ...string) error {
-	root, err := RepoRoot()
+	args, err := composeArgs("up", "-d", "--wait")
 	if err != nil {
 		return err
-	}
-	args := []string{
-		"compose", "--env-file", filepath.Join(root, "loadtest", ".env"),
-		"-f", filepath.Join(root, "docker-compose.yml"),
-		"-f", filepath.Join(root, "loadtest", "docker-compose.override.yml"),
-		"up", "-d", "--wait",
 	}
 	args = append(args, services...)
 	out, err := exec.Command("docker", args...).CombinedOutput()
