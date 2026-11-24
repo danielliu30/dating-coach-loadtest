@@ -211,7 +211,7 @@ func main() {
 			for page := 0; page < historyMaxI; page++ {
 				msgs, r, err := historyPage(ctx, c, threadID, page)
 				if err != nil || r.Status != http.StatusOK {
-					m.ErrOnce("history", "history page %d: err=%v status=%d", page, err, r.Status)
+					m.ErrOnce("history", "history page %d: err=%v status=%d", page, err, harness.Status(r))
 					m.Inc("history_failed")
 					verified = false
 					break
@@ -309,7 +309,7 @@ func main() {
 						"POST /chat/threads/{id}/messages", map[string]string{"body": body},
 						map[string]string{"Authorization": "Bearer " + coach.Token()})
 					if err != nil || (r.Status != http.StatusCreated && r.Status != http.StatusOK) {
-						m.Failf("fan_send_failed", "thread=%d: err=%v status=%d", i, err, r.Status)
+						m.Failf("fan_send_failed", "thread=%d: err=%v status=%d", i, err, harness.Status(r))
 						continue
 					}
 					sent[i]++
