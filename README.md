@@ -52,6 +52,17 @@ Reports land in `out/<component>-<unix>.json` with per-endpoint
 latency/status histograms, counters, finding notes, and pg_stat_statements
 deltas.
 
+## CI
+
+`.github/workflows/load-test.yml` is **manual only** — `workflow_dispatch`
+with the app SHA and profile knobs (`vus`, `rps`, `duration`, `components`).
+The job checks out `dating-coach` at that SHA, brings the gateway stack up
+on the runner, runs `run.sh`, and uploads `out/` (reports, HTML digest, run
+log). The suite never runs on push, PR, or schedule.
+
+The harness finds the app checkout via `LT_APP_DIR` (default: sibling
+`../dating-coach`), so a non-standard local layout only needs that env var.
+
 ## Standard load profile
 
 Components expose the same ramp flags so a run is comparable across surfaces:
