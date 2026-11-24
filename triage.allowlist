@@ -1,0 +1,18 @@
+# lt-triage known-benign allowlist: "component:counter-substring" per line.
+# Flagged counters matching an entry do NOT file loadtest-finding issues —
+# they are verified teardown artifacts, expected-assertion counters, or
+# already tracked elsewhere. Remove an entry when its class stops being
+# benign; real regressions must file.
+
+auth:code_cross_rejected       # expected assertion: cross-code rejection IS the test
+auth:dup_transport_errors      # ErrOnce dedup bookkeeping, not failures
+auth:signout_failed            # ctx-deadline teardown artifact at stage end
+booking:churn_cancel_failed    # boundary-cadence cancels racing fixture cleanup
+booking:shared_conflict        # expected: shared-slot contention IS the assertion
+e2e:failed_at_signout          # ctx-deadline teardown artifact
+e2e:journey_analysis_terminal_fail # tracked: danielliu30/dating-coach#377
+e2e:journey_analysis_submit_failed # same root cause: danielliu30/dating-coach#377
+chat:echo_missing              # boundary-tail echo drain artifact
+chat:persist_unverified        # same boundary window
+chat:ws_send_failed            # ctx-teardown kills queued writes (coder/websocket lock)
+chat:history_failed            # ctx-deadline verify GETs racing stage teardown
