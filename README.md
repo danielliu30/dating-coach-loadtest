@@ -55,7 +55,7 @@ deltas.
 ## CI
 
 `.github/workflows/load-test.yml` runs on **manual dispatch** (`app_sha` +
-`vus`/`rps`/`duration`/`components` overrides) and on a **nightly schedule**
+`vus`/`rps`/`duration`/`components` overrides) and on a **weekly schedule**
 (03:00 UTC, standard profile against `main`). The job checks out
 `dating-coach`, brings the gateway stack up on the runner, runs `run.sh`,
 uploads `out/` (reports, HTML digest, run log), and prints the digest tail
