@@ -25,5 +25,8 @@ go build ./... && go run ./cmd/lt-sanity
 - **Cleanup:** every run deletes its tagged fixtures (`*@loadtest.local`).
 - **One component per PR** (per the pr-granularity playbook), stacked with
   `Depends on: #N` in the PR body.
+- **Findings lifecycle:** `lt-triage` files `loadtest-finding` issues;
+  fix PRs (in dating-coach) must re-run the suite against their head SHA
+  plus all app-repo required checks before merge — see README "Findings".
 - Keep `PAYMENTS_ENABLED=false` in `.env`; lt-payments flips it per
   run once the Stripe provider exists.

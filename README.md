@@ -63,6 +63,30 @@ on the run-summary page. A failed scheduled run files (or comments on) an
 open `loadtest-failure` issue so regressions surface instead of sitting in
 the Actions tab. The suite never runs on push or PR.
 
+## Findings → issues → fixes
+
+`cmd/lt-triage` turns findings into GitHub issues. After a scheduled run
+(or a dispatch with `file_issues=true`) it scans `out/*.json` for nonzero
+flagged counters minus `triage.allowlist` (verified-benign teardown noise
+and findings tracked elsewhere), then per finding:
+
+- **files** a `loadtest-finding` issue keyed `[component] counter` — repro
+  command, error details, per-operation failure breakdown, and the fix
+  contract are in the body
+- **comments** on the matching open issue if the finding recurred
+- **reopens** the issue if it was closed — a returning counter is a
+  regression
+
+Run locally with `go run ./cmd/lt-triage -dry-run` to preview; file against
+another repo via `-repo`/`LT_ISSUE_REPO` (needs a token with issues:write
+there).
+
+**Fix contract for loadtest-surfaced issues:** smallest-diff PR against
+`danielliu30/dating-coach`, tests in the same PR, and verification by
+re-dispatching this suite against the fix SHA
+(`gh workflow run load-test.yml -f app_sha=<sha>`) *plus* all app-repo
+required checks — app tests alone don't clear a load finding.
+
 The harness finds the app checkout via `LT_APP_DIR` (default: sibling
 `../dating-coach`), so a non-standard local layout only needs that env var.
 

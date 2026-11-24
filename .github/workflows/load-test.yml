@@ -30,6 +30,11 @@ on:
         description: space-separated component list
         required: false
         default: "sanity auth chat booking analysis e2e"
+      file_issues:
+        description: file loadtest-finding issues for this run's findings
+        required: false
+        type: boolean
+        default: false
 
 env:
   LT_APP_DIR: app
@@ -91,6 +96,14 @@ jobs:
         if: always()
         run: |
           { echo '## Suite tail'; echo '```'; tail -n 40 out/run.log 2>/dev/null || true; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Triage findings into issues
+        if: always() && (github.event_name == 'schedule' || inputs.file_issues)
+        continue-on-error: true # triage failures must not mask suite results
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: go run ./cmd/lt-triage -out out -run "$RUN_URL"
 
       - name: Upload reports + logs
         if: always()
