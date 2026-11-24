@@ -8,10 +8,13 @@ correctness assertions belong in the cmd, not the library.
 ## Run
 
 ```sh
-docker compose --env-file loadtest/.env \
-  -f docker-compose.yml -f loadtest/docker-compose.override.yml \
+# from the app repo root (sibling clone of this repo):
+LT=../dating-coach-loadtest
+docker compose --env-file $LT/.env \
+  -f docker-compose.yml -f $LT/docker-compose.override.yml \
   --profile gateway up -d --build
-cd loadtest && go build ./... && go run ./cmd/lt-sanity
+# then in this repo:
+go build ./... && go run ./cmd/lt-sanity
 ```
 
 ## Rules
@@ -22,5 +25,5 @@ cd loadtest && go build ./... && go run ./cmd/lt-sanity
 - **Cleanup:** every run deletes its tagged fixtures (`*@loadtest.local`).
 - **One component per PR** (per the pr-granularity playbook), stacked with
   `Depends on: #N` in the PR body.
-- Keep `PAYMENTS_ENABLED=false` in `loadtest/.env`; lt-payments flips it per
+- Keep `PAYMENTS_ENABLED=false` in `.env`; lt-payments flips it per
   run once the Stripe provider exists.

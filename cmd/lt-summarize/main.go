@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/danielliu30/dating-coach/loadtest/internal/harness"
+	"github.com/danielliu30/dating-coach-loadtest/internal/harness"
 )
 
 type rampResult struct {

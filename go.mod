@@ -1,4 +1,4 @@
-module github.com/danielliu30/dating-coach/loadtest
+module github.com/danielliu30/dating-coach-loadtest
 
 go 1.24
 
