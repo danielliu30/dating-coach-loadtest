@@ -30,3 +30,16 @@ go build ./... && go run ./cmd/lt-sanity
   plus all app-repo required checks before merge — see README "Findings".
 - Keep `PAYMENTS_ENABLED=false` in `.env`; lt-payments flips it per
   run once the Stripe provider exists.
+
+## Workflow skills — apply every session
+
+Invoke these whenever their trigger matches — they are part of the working
+protocol, not optional references (shared with the dating-coach app repo via
+`.agents/skills/`):
+
+- `dev-cycle` — end-to-end loop for any code-change task.
+- `coding-efficiency` — every code-change task; smallest correct diff.
+- `pr-granularity` — any change that splits into logical units.
+- `review` — self-review the final `git diff` before reporting; `/review <PR#>` for GitHub PRs.
+- `dating-coach-verify` — before reporting changes that touch dating-coach services.
+- `testing-dating-coach` / `running-dating-coach-in-docker` — when bringing up or deploying the stack this repo tests/operates.
